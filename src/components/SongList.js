@@ -1,4 +1,4 @@
-import { useQuery } from "@apollo/react-hooks";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Card,
   CardActions,
@@ -9,12 +9,13 @@ import {
   Typography,
   makeStyles,
 } from "@material-ui/core";
-import { PlayArrow, Save } from "@material-ui/icons";
-import React from "react";
-import { GET_SONGS } from "../graphql/queries";
+import { Pause, PlayArrow, Save } from "@material-ui/icons";
+import { useSubscription } from "@apollo/react-hooks";
+import { GET_SONGS } from "../graphql/subscriptions";
+import { songContext } from "../App";
 
 const SongList = () => {
-  const { data, loading, error } = useQuery(GET_SONGS);
+  const { data, loading, error } = useSubscription(GET_SONGS);
 
   //   const song = {
   //     title: "LUNE",
@@ -41,6 +42,8 @@ const SongList = () => {
   if (error) {
     return <div>Error fetching songs</div>;
   }
+
+  console.log(data, error);
 
   return (
     <div>
@@ -73,8 +76,22 @@ const useStyles = makeStyles((theme) => ({
 
 function Song({ song }) {
   const classes = useStyles();
+  const { id } = song;
+
+  const [currentSongPlaying, setCurrentSongPlaying] = useState(false);
+  const { state, dispatch } = useContext(songContext);
 
   const { title, artist, thumbnail } = song;
+
+  useEffect(() => {
+    const isSongPlaying = state.isPlaying && id === state.song.id;
+    setCurrentSongPlaying(isSongPlaying);
+  }, [id, state.song.id, state.isPlaying]);
+
+  const handleTogglePlay = () => {
+    dispatch({ type: "SET_SONG", payload: { song } });
+    dispatch(state.isPlaying ? { type: "PAUSE_SONG" } : { type: "PLAY_SONG" });
+  };
 
   return (
     <Card className={classes.container}>
@@ -90,8 +107,8 @@ function Song({ song }) {
             </Typography>
           </CardContent>
           <CardActions>
-            <IconButton size="small" color="primary">
-              <PlayArrow />
+            <IconButton onClick={handleTogglePlay} size="small" color="primary">
+              {currentSongPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
             <IconButton size="small" color="secondary">
               <Save color="secondary" />
